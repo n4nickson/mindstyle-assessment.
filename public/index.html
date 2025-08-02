@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Mindstyle Assessment</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      padding: 30px;
+      background-color: #f9f9f9;
+      color: #333;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    header img {
+      max-width: 120px;
+      margin-bottom: 10px;
+    }
+
+    header h1 {
+      font-size: 28px;
+      margin: 0;
+      color: #2a4d69;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    input[type="text"] {
+      padding: 10px;
+      width: 100%;
+      max-width: 400px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+
+    button {
+      background-color: #2a4d69;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-top: 20px;
+    }
+
+    button:hover {
+      background-color: #1e3c57;
+    }
+
+    .question {
+      background: #fff;
+      padding: 15px;
+      border-radius: 6px;
+      margin-bottom: 15px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    }
+
+    .question p {
+      margin-bottom: 8px;
+    }
+
+    .options label {
+      display: block;
+      margin-top: 5px;
+    }
+
+    .result {
+      margin-top: 30px;
+      font-weight: bold;
+      font-size: 1.2em;
+    }
+
+    #downloadBtn {
+      display: none;
+    }
+
+    #log {
+      margin-top: 40px;
+      border-top: 2px solid #ddd;
+      padding-top: 20px;
+    }
+
+    .log-entry {
+      margin-bottom: 5px;
+      font-size: 0.95em;
+      color: #555;
+    }
+
+    .scores {
+      margin-top: 20px;
+      font-size: 1em;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <img src="https://www.ergosmind.com/wp-content/uploads/2020/10/Ergos-Mind-Logo-MAIN.png" alt="Logo" />
+    <h1>Mindstyle Assessment</h1>
+  </header>
+
+  <!-- Name Input -->
+  <form id="quizForm">
+    <div style="margin-bottom: 20px;">
+      <label><strong>Enter Your Name:</strong></label><br>
+      <input type="text" id="userName" name="userName" required style="padding: 8px; width: 100%; max-width: 400px;" />
+    </div>
+    <div style="margin-bottom: 20px;">
+      <label><strong>Enter Your Email:</strong></label><br>
+      <input type="email" id="userEmail" name="userEmail" required style="padding: 8px; width: 100%; max-width: 400px;" />
+    </div>
+
+    <!-- Quiz Container -->
+    <div id="quizContainer"></div>
+
+    <button type="submit">Submit</button>
+  </form>
+
+  <div class="result" id="result"></div>
+  <button id="downloadBtn">Download Results as PDF</button>
+
+  <!-- Log -->
+  <div id="log">
+    <h2>Submission Log</h2>
+    <div id="logList"></div>
+  </div>
+
+  <script>
+    const styleDescriptions = {
+      A: {
+        title: 'Laser Thinker (Focused Thinker)',
+        core: 'You are intentional and precise. Once you set your mind on a task, you lock in and block out noise. You like clarity, structure, and defined goals. You are dependable, detail-oriented, and steady. People value your ability to bring order to complexity and to deliver consistent results even in demanding situations.',
+        strengths: [
+          'Cuts through distractions with discipline and focus.',
+          'Brings clarity in chaotic or complex situations.',
+          'Finishes tasks reliably and consistently.',
+          'Strong in analytical, compliance-heavy, and detail-oriented work.'
+        ],
+        watchOuts: [
+          'Can miss creative opportunities by being too rigid or narrow.',
+          'May struggle in fluid, ambiguous, or fast-changing settings.',
+          'Might prioritize efficiency over exploration or innovation.'
+        ],
+        growth: [
+          'Practice stepping back regularly to see the bigger picture.',
+          'Allow space for curiosity and creative thought.',
+          'Partner with Explorers or Visionaries for balance.',
+          'Remember: focus is your gift, but flexibility broadens impact.'
+        ],
+        careers: 'Data analysts or auditors — working with patterns, accuracy, and uncovering hidden insights. Engineers or surgeons — excelling in precision-driven, high-stakes environments where errors are costly. Project managers — ensuring structured task execution, timelines, and accountability. Quality assurance specialists — spotting details and ensuring compliance with standards. Any role where attention to fine detail, reliability, and methodical execution are crucial.'
+      },
+      B: {
+        title: 'Explorer Thinker (Curious Innovator)',
+        core: 'You are energized by variety and novelty. You enjoy discovering possibilities and brainstorming ideas. You thrive in dynamic, fast-changing environments and adapt quickly to new information. People see you as creative, flexible, and full of fresh perspectives. You are often the source of innovation in a team.',
+        strengths: [
+          'Highly creative and adaptable, thriving on change.',
+          'Connects ideas others don’t see and generates new approaches.',
+          'Energizes teams with enthusiasm and curiosity.',
+          'Quick to learn and unafraid of experimentation.'
+        ],
+        watchOuts: [
+          'May struggle with discipline and follow-through on projects.',
+          'Risk of scattering energy across too many directions.',
+          'Can overwhelm others with too many ideas at once.'
+        ],
+        growth: [
+          'Channel curiosity into chosen priorities to build depth.',
+          'Use accountability and deadlines to ensure completion.',
+          'Balance exploration with focused execution.',
+          'Learn to prune ideas and focus on the most impactful ones.'
+        ],
+        careers: 'Marketing and advertising professionals — developing creative campaigns and fresh strategies. Entrepreneurs and startup founders — spotting gaps and experimenting with solutions. Consultants and journalists — thriving in environments that require curiosity, learning, and adaptability. Creative designers and R&D specialists — innovating and imagining future possibilities. Any role where novelty, ideation, and adaptability are highly valued.'
+      },
+      C: {
+        title: 'Mood-Led Thinker (Emotional Reactor)',
+        core: 'You think with your emotions. Inspiration fuels you, and when you’re passionate, you give everything. You value authenticity and connection, and people are drawn to your warmth. You bring an emotional lens that others often overlook, giving depth to relationships and meaning to work.',
+        strengths: [
+          'Strong emotional intelligence and natural empathy.',
+          'Authentic, relatable, and trustworthy to others.',
+          'Can deeply inspire and motivate teams when engaged.',
+          'Brings humanity and sensitivity to decision-making.'
+        ],
+        watchOuts: [
+          'Moods can fluctuate, affecting consistency in work.',
+          'Risk of emotional reactivity or over-identification with feelings.',
+          'Can allow temporary emotions to cloud long-term judgment.'
+        ],
+        growth: [
+          'Develop anchor habits and structures that steady productivity.',
+          'Practice emotional regulation and reflection before acting.',
+          'Surround yourself with steady partners for balance.',
+          'Channel emotions into storytelling, empathy, and motivation.'
+        ],
+        careers: 'Counselors, coaches, or therapists — using empathy to support others. HR professionals or mediators — resolving conflicts with emotional insight. Teachers and performers — connecting deeply with audiences or students. Customer service and hospitality roles — excelling in warmth and emotional care. Any role that requires authenticity, relationship-building, and emotional resonance.'
+      },
+      D: {
+        title: 'Driver Thinker (Action-Oriented Doer)',
+        core: 'You are wired for results. Thinking for you quickly becomes action. You are pragmatic, outcome-driven, and thrive on getting things done. You inspire momentum and progress wherever you go.',
+        strengths: [
+          'Relentless drive to achieve results and complete tasks.',
+          'Creates urgency and energy that moves teams forward.',
+          'Excellent at breaking down goals into actionable steps.',
+          'Resilient in high-pressure environments and deadline-driven work.'
+        ],
+        watchOuts: [
+          'Can push too hard and risk impatience with others.',
+          'May neglect strategy, creativity, or emotions in pursuit of results.',
+          'Risk of burnout from constant urgency and intensity.'
+        ],
+        growth: [
+          'Pause and reflect before rushing into solutions.',
+          'Listen carefully to diverse perspectives before acting.',
+          'Partner with Visionaries for strategy and Mood-Led thinkers for empathy.',
+          'Build sustainable pacing instead of operating only in overdrive.'
+        ],
+        careers: 'Operations managers or project leaders — ensuring tasks are executed efficiently. Sales professionals — driving revenue through relentless action and persistence. Entrepreneurs or military leaders — thriving under pressure and moving decisively. Emergency response professionals — acting quickly and effectively in crises. Any role where determination, quick execution, and resilience are essential.'
+      },
+      E: {
+        title: 'Visionary Thinker (Big-Picture Thinker)',
+        core: 'You are future-focused. You see patterns, meaning, and long-term opportunities. While others are immersed in today, you are already imagining tomorrow. People value your ability to inspire, cast vision, and connect events into purpose-driven direction.',
+        strengths: [
+          'Sees patterns and possibilities others miss.',
+          'Inspires with long-term vision and clarity of purpose.',
+          'Brings meaning and direction to current efforts.',
+          'Strong in strategy, storytelling, and foresight.'
+        ],
+        watchOuts: [
+          'Can overlook execution details or underestimate timelines.',
+          'Risk of being seen as unrealistic or impractical.',
+          'May lose patience with operational or repetitive work.'
+        ],
+        growth: [
+          'Translate vision into actionable milestones and measurable outcomes.',
+          'Collaborate with Drivers and Lasers to execute plans.',
+          'Balance imagination with practical realities and resources.',
+          'Ground ideas in clear steps to build credibility and momentum.'
+        ],
+        careers: 'CEOs, strategists, or policy-makers — shaping long-term direction and purpose. Futurists, writers, or educators — inspiring others with insight and foresight. Innovators or faith leaders — pointing people toward bigger possibilities. Consultants and thought leaders — synthesizing patterns into strategy. Any role where vision, purpose, and big-picture strategy are essential.'
+      }
+    };
+
+    const questionsText = [
+      "When you start your workday, your first instinct is to…",
+      "When you’re in the middle of a project and get a new idea, you…",
+      "When you’re under pressure with multiple deadlines, you…",
+      "When someone disagrees with your idea, you…",
+      "On weekends when you have free time, you usually…",
+      "When working late and distractions arise, you…",
+      "When planning a family holiday, you…",
+      "When given extra work unexpectedly, you…",
+      "When thinking about your future career, you…",
+      "When a sudden crisis happens at work, you…",
+      "When you’re asked to brainstorm in a team, you…",
+      "At the end of a busy day, you usually…",
+      "When juggling multiple responsibilities, you…",
+      "When someone gives you feedback, you…",
+      "When planning your week, you…",
+      "When you’re bored, you…",
+      "When you face conflicting priorities, you…",
+      "When dealing with a setback, you…",
+      "When starting a new project, you…",
+      "When in meetings, your mind often…",
+      "When someone interrupts you mid-task, you…",
+      "When making personal decisions, you…",
+      "When reading a book or article, you…",
+      "When conflict arises in your family, you…",
+      "When planning finances, you…",
+      "When setting boundaries with people, you…",
+      "When you face an unfamiliar challenge, you…",
+      "When friends seek advice, you…",
+      "When your workload gets overwhelming, you…",
+      "When reflecting on mistakes, you…",
+      "When making plans with friends, you…",
+      "When working on long-term goals, you…",
+      "When you receive too many requests, you…",
+      "When working in teams, you…",
+      "When you’re asked to learn something new, you…",
+      "When deadlines are extended, you…",
+      "When dealing with stress, you…",
+      "When preparing for a big presentation, you…",
+      "When working long hours and someone interrupts, you…",
+      "In stressful situations, your thinking tends to…"
+    ];
+
+    const answerOptions = [
+      [
+        { value: "A", text: "List priorities and dive into the most important one." },
+        { value: "B", text: "Open yourself to new ideas or tasks that may pop up." },
+        { value: "C", text: "Do what feels easiest or most appealing at the time." },
+        { value: "D", text: "Tackle quick wins to build momentum." },
+        { value: "E", text: "Reflect on long-term goals before starting." }
+      ],
+      [
+        { value: "A", text: "Note it down but stay focused on the task at hand." },
+        { value: "B", text: "Chase the idea and see where it leads." },
+        { value: "C", text: "Follow through only if it excites you emotionally." },
+        { value: "D", text: "Decide quickly whether it adds value now or not." },
+        { value: "E", text: "Consider how the idea might influence the future." }
+      ],
+      [
+        { value: "A", text: "Block out distractions and handle one deadline at a time." },
+        { value: "B", text: "Jump between tasks as inspiration strikes." },
+        { value: "C", text: "Focus only if your energy and mood allow." },
+        { value: "D", text: "Prioritize tasks by urgency and knock them out fast." },
+        { value: "E", text: "Step back to see which deadlines have the biggest impact." }
+      ],
+      [
+        { value: "A", text: "Clarify your reasoning and stick to your view." },
+        { value: "B", text: "Explore their perspective openly, even if it derails your thought." },
+        { value: "C", text: "Take it personally and let it affect your mood." },
+        { value: "D", text: "Defend your point directly and push for results." },
+        { value: "E", text: "Think about how both ideas might fit a larger purpose." }
+      ],
+      [
+        { value: "A", text: "Plan an activity and focus on enjoying it fully." },
+        { value: "B", text: "Try out whatever new opportunities arise." },
+        { value: "C", text: "Go with whatever you feel like in the moment." },
+        { value: "D", text: "Use the time to finish pending tasks." },
+        { value: "E", text: "Reflect on life direction or dream about the future." }
+      ],
+      [
+        { value: "A", text: "Shut them out to preserve focus." },
+        { value: "B", text: "Allow them if they seem interesting." },
+        { value: "C", text: "Follow them if they match your energy." },
+        { value: "D", text: "Quickly manage the distraction and move on." },
+        { value: "E", text: "Ask yourself if the distraction might reveal something important." }
+      ],
+      [
+        { value: "A", text: "Research and fix a detailed itinerary." },
+        { value: "B", text: "Leave room to explore spontaneous adventures." },
+        { value: "C", text: "Decide based on what feels right emotionally." },
+        { value: "D", text: "Organize logistics to ensure smooth travel." },
+        { value: "E", text: "Picture how the trip will create lasting memories." }
+      ],
+      [
+        { value: "A", text: "Fit it into your current focus and schedule." },
+        { value: "B", text: "See it as a chance to try something different." },
+        { value: "C", text: "Take it on if you’re in the right mood." },
+        { value: "D", text: "Act fast to complete it efficiently." },
+        { value: "E", text: "Weigh whether it contributes to bigger goals." }
+      ],
+      [
+        { value: "A", text: "Visualize specific steps to achieve your goals." },
+        { value: "B", text: "Keep options open to see where life leads." },
+        { value: "C", text: "Think about it depending on how you feel about your job now." },
+        { value: "D", text: "Map out practical actions to climb ahead." },
+        { value: "E", text: "Dream of the kind of legacy you’d like to leave." }
+      ],
+      [
+        { value: "A", text: "Narrow in on solving the immediate problem." },
+        { value: "B", text: "Throw out ideas rapidly to see what might work." },
+        { value: "C", text: "React based on your emotional state." },
+        { value: "D", text: "Take charge, assign tasks, and drive resolution." },
+        { value: "E", text: "Consider how the crisis might shape long-term strategy." }
+      ],
+      [
+        { value: "A", text: "Stick closely to the topic and push for clarity." },
+        { value: "B", text: "Share multiple wild ideas, even unrelated ones." },
+        { value: "C", text: "Contribute only if you feel comfortable that day." },
+        { value: "D", text: "Suggest ideas that can be acted on quickly." },
+        { value: "E", text: "Focus on ideas that connect to a bigger picture." }
+      ],
+      [
+        { value: "A", text: "Reflect on whether you achieved your main goal." },
+        { value: "B", text: "Replay the variety of things you tried." },
+        { value: "C", text: "Judge the day by how it felt emotionally." },
+        { value: "D", text: "Count tasks completed and results delivered." },
+        { value: "E", text: "Think about how the day fits into your long-term vision." }
+      ],
+      [
+        { value: "A", text: "Sequence tasks and stick to the order." },
+        { value: "B", text: "Jump between tasks, exploring as you go." },
+        { value: "C", text: "Work only on what you’re in the mood for." },
+        { value: "D", text: "Push to get the most urgent ones done." },
+        { value: "E", text: "Decide based on which will matter most in the future." }
+      ],
+      [
+        { value: "A", text: "Focus on the key point to improve." },
+        { value: "B", text: "Explore all their comments, even side notes." },
+        { value: "C", text: "React emotionally depending on tone." },
+        { value: "D", text: "Look for actionable steps to fix quickly." },
+        { value: "E", text: "Consider how feedback connects to your long-term growth." }
+      ],
+      [
+        { value: "A", text: "Prioritize the top three things to focus on." },
+        { value: "B", text: "Leave blocks of time for unexpected opportunities." },
+        { value: "C", text: "Plan loosely and adjust based on your feelings." },
+        { value: "D", text: "Fill the calendar with tasks and deadlines." },
+        { value: "E", text: "Map how each day contributes to bigger goals." }
+      ],
+      [
+        { value: "A", text: "Use the time to think deeply about one issue." },
+        { value: "B", text: "Look for something new and stimulating." },
+        { value: "C", text: "Let your feelings decide what to do." },
+        { value: "D", text: "Do something productive, even small." },
+        { value: "E", text: "Reflect on life direction and possible futures." }
+      ],
+      [
+        { value: "A", text: "Choose one and commit fully." },
+        { value: "B", text: "Test out both until one feels right." },
+        { value: "C", text: "Go with whichever matches your current mood." },
+        { value: "D", text: "Pick whichever has the most urgency." },
+        { value: "E", text: "Consider which choice aligns with long-term goals." }
+      ],
+      [
+        { value: "A", text: "Focus on lessons and practical next steps." },
+        { value: "B", text: "Explore alternative paths quickly." },
+        { value: "C", text: "Allow emotions to guide how you move on." },
+        { value: "D", text: "Push yourself to bounce back and act." },
+        { value: "E", text: "Reframe the setback in light of the bigger journey." }
+      ],
+      [
+        { value: "A", text: "Define scope and narrow down to essentials." },
+        { value: "B", text: "Explore possibilities widely before choosing." },
+        { value: "C", text: "Start only if you feel excited or motivated." },
+        { value: "D", text: "Jump in fast with clear action steps." },
+        { value: "E", text: "Imagine the impact it could have long-term." }
+      ],
+      [
+        { value: "A", text: "Locks onto the key points being discussed." },
+        { value: "B", text: "Wanders into side ideas and tangents." },
+        { value: "C", text: "Drifts with your energy or emotions." },
+        { value: "D", text: "Focuses on action items and deliverables." },
+        { value: "E", text: "Thinks about the broader implications of the discussion." }
+      ],
+      [
+        { value: "A", text: "Protect your focus and continue." },
+        { value: "B", text: "Let the conversation take you in a new direction." },
+        { value: "C", text: "Respond if you feel like it; ignore if not." },
+        { value: "D", text: "Address it briefly then return to work." },
+        { value: "E", text: "Pause if the interruption seems strategically useful." }
+      ],
+      [
+        { value: "A", text: "Stick to what you know is most logical." },
+        { value: "B", text: "Explore different possibilities before deciding." },
+        { value: "C", text: "Choose what feels right in the moment." },
+        { value: "D", text: "Decide quickly and move on." },
+        { value: "E", text: "Consider how it aligns with your life purpose." }
+      ],
+      [
+        { value: "A", text: "Focus on key arguments or insights." },
+        { value: "B", text: "Wander into side research sparked by curiosity." },
+        { value: "C", text: "Read if you’re in the right mood." },
+        { value: "D", text: "Look for practical takeaways." },
+        { value: "E", text: "Connect it to broader concepts or future vision." }
+      ],
+      [
+        { value: "A", text: "Stick to the issue and resolve it directly." },
+        { value: "B", text: "Try different angles to ease the tension." },
+        { value: "C", text: "React based on your emotions." },
+        { value: "D", text: "Push for quick resolution and clear outcomes." },
+        { value: "E", text: "Think about how to preserve harmony long-term." }
+      ],
+      [
+        { value: "A", text: "Focus on numbers and specific targets." },
+        { value: "B", text: "Explore multiple income or investment options." },
+        { value: "C", text: "Spend or save depending on how you feel." },
+        { value: "D", text: "Budget carefully and act fast to implement." },
+        { value: "E", text: "Think about how money fits into future dreams." }
+      ],
+      [
+        { value: "A", text: "State them clearly and stick to them." },
+        { value: "B", text: "Leave flexibility to explore new dynamics." },
+        { value: "C", text: "Set them based on emotional comfort." },
+        { value: "D", text: "Enforce them practically and consistently." },
+        { value: "E", text: "Consider how boundaries support long-term growth." }
+      ],
+      [
+        { value: "A", text: "Break it down into manageable parts." },
+        { value: "B", text: "Explore different methods, even trial and error." },
+        { value: "C", text: "Wait until you feel ready to handle it." },
+        { value: "D", text: "Jump in and take immediate steps." },
+        { value: "E", text: "Step back to understand its broader impact." }
+      ],
+      [
+        { value: "A", text: "Give them focused, practical suggestions." },
+        { value: "B", text: "Offer a range of ideas for them to try." },
+        { value: "C", text: "Respond based on how you feel at that moment." },
+        { value: "D", text: "Encourage clear action steps." },
+        { value: "E", text: "Help them see the bigger picture." }
+      ],
+      [
+        { value: "A", text: "Narrow focus to one priority." },
+        { value: "B", text: "Jump between tasks seeking variety." },
+        { value: "C", text: "Do only what feels manageable emotionally." },
+        { value: "D", text: "Create a checklist and power through." },
+        { value: "E", text: "Re-evaluate what truly matters long-term." }
+      ],
+      [
+        { value: "A", text: "Focus on the single biggest lesson." },
+        { value: "B", text: "Explore all possible reasons it happened." },
+        { value: "C", text: "Dwell on how it made you feel." },
+        { value: "D", text: "Find practical fixes to avoid repeating it." },
+        { value: "E", text: "Ask what it means for your overall journey." }
+      ],
+      [
+        { value: "A", text: "Fix a clear agenda and stick to it." },
+        { value: "B", text: "Go with the flow, open to surprises." },
+        { value: "C", text: "Decide based on your mood that day." },
+        { value: "D", text: "Ensure logistics are handled efficiently." },
+        { value: "E", text: "Think about how the time strengthens relationships." }
+      ],
+      [
+        { value: "A", text: "Break them into short, focused steps." },
+        { value: "B", text: "Keep exploring different ways to reach them." },
+        { value: "C", text: "Stay engaged only if you feel motivated." },
+        { value: "D", text: "Track progress and push through obstacles." },
+        { value: "E", text: "Keep the ultimate vision clear in your mind." }
+      ],
+      [
+        { value: "A", text: "Select only those aligned to your priorities." },
+        { value: "B", text: "Experiment and say yes to several." },
+        { value: "C", text: "Accept or decline based on your feelings." },
+        { value: "D", text: "Say yes only if you can execute fast." },
+        { value: "E", text: "Choose based on which supports your long-term vision." }
+      ],
+      [
+        { value: "A", text: "Stay on task and keep focus." },
+        { value: "B", text: "Wander into creative tangents." },
+        { value: "C", text: "Contribute depending on how you feel that day." },
+        { value: "D", text: "Push the team toward results." },
+        { value: "E", text: "Remind the team of the bigger picture." }
+      ],
+      [
+        { value: "A", text: "Master the core essentials first." },
+        { value: "B", text: "Explore widely, even unrelated topics." },
+        { value: "C", text: "Learn only if it excites you." },
+        { value: "D", text: "Apply it quickly to real situations." },
+        { value: "E", text: "Think about how this knowledge fits your future." }
+      ],
+      [
+        { value: "A", text: "Keep working steadily, unchanged." },
+        { value: "B", text: "Wander into new ideas while waiting." },
+        { value: "C", text: "Lose momentum if you don’t feel driven." },
+        { value: "D", text: "Use extra time to complete more tasks." },
+        { value: "E", text: "Reconsider whether the project still serves bigger goals." }
+      ],
+      [
+        { value: "A", text: "Focus narrowly on one thing to calm yourself." },
+        { value: "B", text: "Distract yourself with new activities." },
+        { value: "C", text: "Let your emotions dictate how you cope." },
+        { value: "D", text: "Channel energy into tasks and problem-solving." },
+        { value: "E", text: "Step back and reflect on long-term meaning." }
+      ],
+      [
+        { value: "A", text: "Practice thoroughly and focus on key points." },
+        { value: "B", text: "Brainstorm multiple creative ways to present." },
+        { value: "C", text: "Prepare only if you’re in the right mood." },
+        { value: "D", text: "Focus on structure and delivery." },
+        { value: "E", text: "Think about the overall impact on your audience." }
+      ],
+      [
+        { value: "A", text: "Protect your time and continue focusing." },
+        { value: "B", text: "Let the interruption take you into a new conversation." },
+        { value: "C", text: "Respond if you feel up to it; ignore if not." },
+        { value: "D", text: "Quickly address and return to task." },
+        { value: "E", text: "Pause if the interruption feels strategic or valuable." }
+      ],
+      [
+        { value: "A", text: "Narrow down to one thing at a time — block out noise." },
+        { value: "B", text: "Scatter — lots of ideas but hard to settle." },
+        { value: "C", text: "Be influenced by how you feel in that moment." },
+        { value: "D", text: "Shift into problem-solving mode; focus on tasks." },
+        { value: "E", text: "Look beyond the immediate stress to future outcomes." }
+      ]
+    ];
+
+    const quizContainer = document.getElementById("quizContainer");
+    const resultDiv = document.getElementById("result");
+    const downloadBtn = document.getElementById("downloadBtn");
+    const logList = document.getElementById("logList");
+
+    let latestDominantStyles = [];
+    let latestSupportingStyle = "";
+    let latestBalanceMessage = "";
+    let latestAnswers = {};
+    let latestName = "";
+    let latestEmail = "";
+    let latestCounts = {};
+
+    const logoBase64 = "data:image/png;base64,iVBkdIYRMCJM7QgiZECZ3hBAyIUzuCCFkQpjcEULIhDC5I4SQCWFyRwghE8LkjhBkQpjcEULIhDC5I4SQCWFyRwghE8LkjhBCJoTJHSGETOj/A0YSHiRTmCNmAAAAAElFTkSuQmCC";
+
+    // Function to shuffle array
+    function shuffleArray(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    }
+
+    // Generate Questions
+    questionsText.forEach((question, index) => {
+      const div = document.createElement("div");
+      div.className = "question";
+      const shuffledOptions = shuffleArray([...answerOptions[index]]);
+      div.innerHTML = `
+        <p><strong>Q${index + 1}. ${question}</strong></p>
+        <div class="options">
+          ${shuffledOptions.map(option => `
+            <label><input type="radio" name="q${index}" value="${option.value}" required> ${option.text}</label>
+          `).join('')}
+        </div>
+      `;
+      quizContainer.appendChild(div);
+    });
+
+    // Form Submission
+    document.getElementById("quizForm").addEventListener("submit", async function(e) {
+      e.preventDefault();
+
+      const name = document.getElementById("userName").value.trim();
+      const email = document.getElementById("userEmail").value.trim();
+      const formData = new FormData(this);
+      const counts = { A: 0, B: 0, C: 0, D: 0, E: 0 };
+      latestAnswers = {};
+
+      for (let [key, value] of formData.entries()) {
+        if (key !== "userName" && key !== "userEmail") {
+          counts[value]++;
+          latestAnswers[key] = value;
+        }
+      }
+
+      // Find highest and second-highest scores
+      const sortedCounts = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+      const highestScore = sortedCounts[0][1];
+      const dominantStyles = sortedCounts.filter(([_, score]) => score === highestScore).map(([style]) => style);
+      let supportingStyle = '';
+      if (dominantStyles.length === 1) {
+        supportingStyle = sortedCounts.find(([style, score]) => !dominantStyles.includes(style) && score === sortedCounts[1][1])[0];
+      }
+
+      // Check for nearly balanced styles (within 2 points of highest)
+      const closeStyles = sortedCounts.filter(([_, score]) => highestScore - score <= 2).map(([style]) => style);
+      latestBalanceMessage = closeStyles.length >= 2 ? 
+        `Your scores are nearly balanced across ${closeStyles.length} styles (${closeStyles.join(', ')}), indicating you may flex between them depending on the situation.` : "";
+
+      const timestamp = new Date().toLocaleString();
+      latestDominantStyles = dominantStyles;
+      latestSupportingStyle = supportingStyle;
+      latestName = name;
+      latestEmail = email;
+      latestCounts = counts;
+
+      // Update result display
+      let resultHTML = `Hi ${name}, your dominant mindstyle${dominantStyles.length > 1 ? 's are' : ' is'}: ${dominantStyles.map(style => styleDescriptions[style].title).join(' and ')}<br>`;
+      if (supportingStyle) {
+        resultHTML += `Your supporting mindstyle is: ${styleDescriptions[supportingStyle].title}<br>`;
+      }
+      if (latestBalanceMessage) {
+        resultHTML += `${latestBalanceMessage}<br>`;
+      }
+      resultHTML += `<div class="scores">Thinking Styles Scores:<br>`;
+      resultHTML += `Laser Thinker: ${counts.A}<br>`;
+      resultHTML += `Explorer Thinker: ${counts.B}<br>`;
+      resultHTML += `Mood-Led Thinker: ${counts.C}<br>`;
+      resultHTML += `Driver Thinker: ${counts.D}<br>`;
+      resultHTML += `Visionary Thinker: ${counts.E}</div>`;
+      resultDiv.innerHTML = resultHTML;
+
+      const logEntry = document.createElement("div");
+      logEntry.className = "log-entry";
+      logEntry.innerText = `[${timestamp}] Name: ${name} | Email: ${email} | A:${counts.A}, B:${counts.B}, C:${counts.C}, D:${counts.D}, E:${counts.E} => Dominant: ${dominantStyles.join(',')}${supportingStyle ? `, Supporting: ${supportingStyle}` : ''}${closeStyles.length >= 2 ? `, Balanced: ${closeStyles.join(',')}` : ''}`;
+      logList.prepend(logEntry);
+
+      // Send data to server for PDF generation and emailing
+      try {
+        const response = await fetch('/send-pdf', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name,
+            email,
+            dominantStyles,
+            supportingStyle,
+            balanceMessage: latestBalanceMessage,
+            counts
+          })
+        });
+        const result = await response.json();
+        if (response.ok) {
+          alert(`PDF has been sent to ${email}`);
+        } else {
+          alert(`Error sending PDF: ${result.error}`);
+        }
+      } catch (error) {
+        console.error('Error sending data to server:', error);
+        alert('Error sending PDF. Please try again.');
+      }
+
+      downloadBtn.style.display = "inline-block";
+    });
+
+    // PDF Download (client-side)
+    downloadBtn.addEventListener("click", () => {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+      const margin = 40;
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+
+      // Define Colors and Fonts
+      const primaryColor = [42, 77, 105]; // #2a4d69
+      const secondaryColor = [200, 200, 200]; // Light gray
+      const accentColor = [100, 100, 100]; // Darker gray for emphasis
+      doc.setFont("helvetica", "normal");
+
+      // Helper Function for Header
+      const addHeader = (pageNum) => {
+        doc.setFillColor(...primaryColor);
+        doc.rect(0, 0, pageWidth, 60, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(16);
+        doc.text("Ergos Mind - Mindstyle Assessment", margin + 50, 35);
+        doc.setFontSize(10);
+        doc.text(`Page ${pageNum}`, pageWidth - margin - 30, 35);
+        try {
+          doc.addImage(logoBase64, 'PNG', margin, 15, 40, 40);
+        } catch (e) {
+          console.error("Error adding logo to header:", e);
+        }
+      };
+
+      // Helper Function for Footer
+      const addFooter = () => {
+        doc.setFillColor(...secondaryColor);
+        doc.rect(0, pageHeight - 40, pageWidth, 40, 'F');
+        doc.setTextColor(0, 0, 0);
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(8);
+        doc.text("© 2025 Ergos Mind | www.ergosmind.com", margin, pageHeight - 15);
+      };
+
+      // Helper Function to Add Style Description
+      const addStyleDescription = (style, title, y) => {
+        // Section Title
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(18);
+        doc.setTextColor(...primaryColor);
+        doc.text(title, margin, y);
+        y += 25;
+        doc.setLineWidth(1);
+        doc.setDrawColor(...accentColor);
+        doc.line(margin, y, pageWidth - margin, y);
+        y += 15;
+
+        // Core Characteristics
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(14);
+        doc.setTextColor(0, 0, 0);
+        doc.text("Core Characteristics", margin, y);
+        y += 15;
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(11);
+        let coreLines = doc.splitTextToSize(styleDescriptions[style].core, pageWidth - 2 * margin);
+        doc.text(coreLines, margin, y);
+        y += coreLines.length * 11 + 15;
+
+        // Strengths
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(14);
+        doc.text("Strengths / Positives", margin, y);
+        y += 15;
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(11);
+        styleDescriptions[style].strengths.forEach(strength => {
+          let strengthLines = doc.splitTextToSize(`• ${strength}`, pageWidth - 2 * margin - 10);
+          doc.text(strengthLines, margin + 10, y);
+          y += strengthLines.length * 11 + 5;
+        });
+        y += 10;
+
+        // Watch Outs
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(14);
+        doc.text("Watch Outs", margin, y);
+        y += 15;
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(11);
+        styleDescriptions[style].watchOuts.forEach(watchOut => {
+          let watchOutLines = doc.splitTextToSize(`• ${watchOut}`, pageWidth - 2 * margin - 10);
+          doc.text(watchOutLines, margin + 10, y);
+          y += watchOutLines.length * 11 + 5;
+        });
+        y += 10;
+
+        // Growth Path
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(14);
+        doc.text("Growth Path / How to Optimize", margin, y);
+        y += 15;
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(11);
+        styleDescriptions[style].growth.forEach(growth => {
+          let growthLines = doc.splitTextToSize(`• ${growth}`, pageWidth - 2 * margin - 10);
+          doc.text(growthLines, margin + 10, y);
+          y += growthLines.length * 11 + 5;
+        });
+        y += 10;
+
+        // Career Fit
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(14);
+        doc.text("Career Fit & Roles", margin, y);
+        y += 15;
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(11);
+        let careerLines = doc.splitTextToSize(styleDescriptions[style].careers, pageWidth - 2 * margin);
+        doc.text(careerLines, margin, y);
+        y += careerLines.length * 11 + 20;
+
+        return y;
+      };
+
+      // Cover Page
+      let pageNum = 1;
+      addHeader(pageNum);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(0, 0, 0);
+      try {
+        doc.addImage(logoBase64, 'PNG', (pageWidth - 120) / 2, 80, 120, 120);
+      } catch (e) {
+        console.error("Error adding logo to cover:", e);
+      }
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(26);
+      doc.setTextColor(...primaryColor);
+      doc.text("Mindstyle Assessment", margin, 220, { align: 'left', maxWidth: pageWidth - 2 * margin });
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(14);
+      doc.setTextColor(0, 0, 0);
+      doc.text(`Prepared for: ${latestName}`, margin, 260);
+      const dateOnly = new Date().toLocaleDateString();
+      doc.text(`Date: ${dateOnly}`, margin, 280);
+      doc.setFontSize(12);
+      doc.text("Powered by Ergos Mind", margin, 320);
+      addFooter();
+      doc.addPage();
+
+      // Results Page
+      pageNum++;
+      addHeader(pageNum);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(0, 0, 0);
+      let y = 80;
+
+      // Dominant Style(s)
+      for (let style of latestDominantStyles) {
+        if (y > pageHeight - 100) {
+          addFooter();
+          doc.addPage();
+          pageNum++;
+          addHeader(pageNum);
+          doc.setFont("helvetica", "normal");
+          doc.setTextColor(0, 0, 0);
+          y = 80;
+        }
+        y = addStyleDescription(style, `Your Dominant Mindstyle: ${styleDescriptions[style].title}`, y);
+      }
+
+      // Balance Message
+      if (latestBalanceMessage) {
+        if (y > pageHeight - 100) {
+          addFooter();
+          doc.addPage();
+          pageNum++;
+          addHeader(pageNum);
+          doc.setFont("helvetica", "normal");
+          doc.setTextColor(0, 0, 0);
+          y = 80;
+        }
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(18);
+        doc.setTextColor(...primaryColor);
+        doc.text("Balance Note", margin, y);
+        y += 25;
+        doc.setLineWidth(1);
+        doc.setDrawColor(...accentColor);
+        doc.line(margin, y, pageWidth - margin, y);
+        y += 15;
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(11);
+        let balanceLines = doc.splitTextToSize(latestBalanceMessage, pageWidth - 2 * margin);
+        doc.text(balanceLines, margin, y);
+        y += balanceLines.length * 11 + 20;
+      }
+
+      // Add Scores
+      if (y > pageHeight - 100) {
+        addFooter();
+        doc.addPage();
+        pageNum++;
+        addHeader(pageNum);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(0, 0, 0);
+        y = 80;
+      }
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(18);
+      doc.setTextColor(...primaryColor);
+      doc.text("Thinking Styles Scores", margin, y);
+      y += 25;
+      doc.setLineWidth(1);
+      doc.setDrawColor(...accentColor);
+      doc.line(margin, y, pageWidth - margin, y);
+      y += 15;
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(11);
+      doc.text(`Laser Thinker: ${latestCounts.A}`, margin, y);
+      y += 15;
+      doc.text(`Explorer Thinker: ${latestCounts.B}`, margin, y);
+      y += 15;
+      doc.text(`Mood-Led Thinker: ${latestCounts.C}`, margin, y);
+      y += 15;
+      doc.text(`Driver Thinker: ${latestCounts.D}`, margin, y);
+      y += 15;
+      doc.text(`Visionary Thinker: ${latestCounts.E}`, margin, y);
+      y += 20;
+
+      addFooter();
+      doc.save(`${latestName}_Mindstyle_Assessment.pdf`);
+    });
+  </script>
+</body>
+</html>
